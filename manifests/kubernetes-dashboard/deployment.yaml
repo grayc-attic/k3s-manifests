@@ -1,0 +1,57 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: kubernetes-dashboard
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubernetes-dashboard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kubernetes-dashboard
+    spec:
+      containers:
+        - name: kubernetesui-dashboard
+          image: docker.io/kubernetesui/dashboard:v2.7.0
+          imagePullPolicy: IfNotPresent
+          args:
+            # https://github.com/kubernetes/dashboard/blob/master/docs/common/dashboard-arguments.md
+            - --insecure-port=8080
+            - --insecure-bind-address=0.0.0.0
+            - --namespace=default
+            - --metrics-provider=none
+          ports:
+            - name: http
+              containerPort: 8080
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 1
+            successThreshold: 1
+            failureThreshold: 55
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+      automountServiceAccountToken: true
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsUser: 1000
+      serviceAccountName: kubernetes-dashboard
+      terminationGracePeriodSeconds: 0
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+jobs:
+
+  yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ibiqlik/action-yamllint@v3
+        with:
+          format: colored
+          strict: true
+
+  markdown:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: avto-dev/markdown-lint@v1
+        with:
+          args: /github/workspace
+
+  manifests:
+    strategy:
+      matrix:
+        directory:
+          - kafdrop
+          - kafka
+          - kubernetes-dashboard
+          - mailhog
+          - postgres
+          - traefik
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: karancode/kustomize-github-action@v1.2.4
+        with:
+          kustomize_version: 4.5.7
+          kustomize_build_dir: manifests/${{ matrix.directory }}

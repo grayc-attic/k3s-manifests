@@ -1,0 +1,7 @@
+resources:
+  - https://github.com/kokuwaio/k3s-manifests/manifests/kafka
+  - https://github.com/kokuwaio/k3s-manifests/manifests/kafdrop
+  - https://github.com/kokuwaio/k3s-manifests/manifests/kubernetes-dashboard
+  - https://github.com/kokuwaio/k3s-manifests/manifests/mailhog
+  - https://github.com/kokuwaio/k3s-manifests/manifests/postgres
+  - https://github.com/kokuwaio/k3s-manifests/manifests/traefik

@@ -1,0 +1,123 @@
+apiVersion: v1
+data:
+  init.sh: |
+    #!/bin/bash
+    set -e
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+
+        CREATE DATABASE "database_1";
+        CREATE USER "user_1" WITH ENCRYPTED PASSWORD 'password';
+        GRANT ALL PRIVILEGES ON DATABASE "database_1" TO "user_1";
+
+        CREATE DATABASE "database_2";
+        CREATE USER "user_2" WITH ENCRYPTED PASSWORD 'password';
+        GRANT ALL PRIVILEGES ON DATABASE "database_2" TO "user_2";
+
+        CREATE DATABASE "database_3";
+        CREATE USER "user_3" WITH ENCRYPTED PASSWORD 'password';
+        GRANT ALL PRIVILEGES ON DATABASE "database_3" TO "user_3";
+
+        CREATE DATABASE "database_4";
+        CREATE USER "user_4" WITH ENCRYPTED PASSWORD 'password';
+        GRANT ALL PRIVILEGES ON DATABASE "database_4" TO "user_4";
+
+        CREATE DATABASE "database_5";
+        CREATE USER "user_5" WITH ENCRYPTED PASSWORD 'password';
+        GRANT ALL PRIVILEGES ON DATABASE "database_5" TO "user_5";
+
+    EOSQL
+kind: ConfigMap
+metadata:
+  name: postgres-config-4cgdg859f8
+---
+apiVersion: v1
+data:
+  POSTGRES_PASSWORD: cGFzc3dvcmQ=
+  POSTGRES_USER: cG9zdGdyZXM=
+kind: Secret
+metadata:
+  name: postgres-env-tktf78cckm
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+  selector:
+    app.kubernetes.io/name: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - envFrom:
+            - secretRef:
+                name: postgres-env-tktf78cckm
+          image: docker.io/postgres:15.0
+          imagePullPolicy: IfNotPresent
+          name: postgres
+          ports:
+            - containerPort: 5432
+              name: postgres
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready
+            failureThreshold: 50
+            initialDelaySeconds: 10
+            periodSeconds: 1
+            successThreshold: 1
+          volumeMounts:
+            - mountPath: /docker-entrypoint-initdb.d/init.sh
+              name: config
+              readOnly: true
+              subPath: init.sh
+            - mountPath: /var/lib/postgresql
+              name: data
+            - mountPath: /var/run/postgresql
+              name: tmp
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 999
+        runAsGroup: 999
+        runAsUser: 999
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - configMap:
+            name: postgres-config-4cgdg859f8
+          name: config
+        - emptyDir: {}
+          name: data
+        - emptyDir: {}
+          name: tmp
